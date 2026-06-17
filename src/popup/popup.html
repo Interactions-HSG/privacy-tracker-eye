@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>Tracker Eye</title>
+  </head>
+  <body>
+    <header>
+      <span class="logo" aria-hidden="true">👁</span>
+      <h1>Tracker Eye</h1>
+    </header>
+
+    <section class="readout">
+      <div class="gauge">
+        <div class="gauge-fill" id="gauge-fill"></div>
+        <div class="gauge-label">
+          <span id="intensity-pct">0%</span>
+          <small id="band">idle</small>
+        </div>
+      </div>
+      <div class="page" id="page-domain">—</div>
+    </section>
+
+    <section class="signals">
+      <div class="signal"><b id="c-orgs">0</b><span>tracker orgs</span></div>
+      <div class="signal"><b id="c-domains">0</b><span>tracker domains</span></div>
+      <div class="signal"><b id="c-requests">0</b><span>tracker requests</span></div>
+      <div class="signal"><b id="c-cookies">0</b><span>3rd-party cookies</span></div>
+      <div class="signal"><b id="c-fp">0%</b><span>fingerprinting</span></div>
+      <div class="signal"><b id="c-third">0</b><span>3rd-party reqs</span></div>
+    </section>
+
+    <details class="orgs">
+      <summary>Detected organisations</summary>
+      <ul id="org-list"><li class="muted">none yet</li></ul>
+    </details>
+
+    <hr />
+
+    <section class="controls">
+      <label class="row">
+        <span>Show the eye</span>
+        <input type="checkbox" id="eyeEnabled" />
+      </label>
+
+      <label class="row">
+        <span>Corner</span>
+        <select id="corner">
+          <option value="top-right">top-right</option>
+          <option value="top-left">top-left</option>
+          <option value="bottom-right">bottom-right</option>
+          <option value="bottom-left">bottom-left</option>
+        </select>
+      </label>
+
+      <label class="row">
+        <span>Size <em id="size-val">320</em>px</span>
+        <input type="range" id="size" min="160" max="640" step="20" />
+      </label>
+
+      <label class="row">
+        <span>Override intensity</span>
+        <input type="checkbox" id="overrideOn" />
+      </label>
+      <label class="row sub">
+        <input type="range" id="override" min="0" max="100" step="1" disabled />
+        <em id="override-val">0%</em>
+      </label>
+
+      <label class="row">
+        <span>Log samples (1/s)</span>
+        <input type="checkbox" id="logging" />
+      </label>
+
+      <button id="export" type="button">Export log (JSON)</button>
+    </section>
+
+    <footer id="foot">research prototype</footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

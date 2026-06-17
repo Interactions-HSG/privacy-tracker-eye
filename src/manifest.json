@@ -1,0 +1,55 @@
+{
+  "manifest_version": 2,
+  "name": "Tracker Eye",
+  "version": "0.1.0",
+  "description": "Makes invisible online tracking visible through an anthropomorphic eye that watches you back as you are being tracked. Research prototype.",
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "tracker-eye@research.unisg.ch",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+
+  "icons": {
+    "48": "icons/eye.svg",
+    "96": "icons/eye.svg"
+  },
+
+  "permissions": [
+    "webRequest",
+    "tabs",
+    "storage",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background/index.js"],
+    "persistent": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/index.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+
+  "web_accessible_resources": [
+    "content/fingerprint-probe.js"
+  ],
+
+  "browser_action": {
+    "default_title": "Tracker Eye",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "48": "icons/eye.svg",
+      "96": "icons/eye.svg"
+    }
+  }
+}

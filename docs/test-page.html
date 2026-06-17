@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tracker Eye — test fixture</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+      h1 { font-size: 22px; }
+      .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+      button { padding: 8px 12px; border: 1px solid #888; border-radius: 8px; background: #fff; cursor: pointer; }
+      pre { background: #f3f4f6; padding: 12px; border-radius: 8px; overflow: auto; }
+      .note { color: #555; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>Tracker Eye — local test fixture</h1>
+    <p class="note">
+      This page deliberately issues requests to well-known tracker domains and
+      runs fingerprinting code so you can watch the eye react. The tracker
+      requests will fail to load (that is fine — the extension only needs to
+      <em>observe</em> them). Open the popup to see the live signals.
+    </p>
+
+    <div class="controls">
+      <button id="load-trackers">Trigger third-party trackers</button>
+      <button id="fp-canvas">Run canvas fingerprint</button>
+      <button id="fp-webgl">Run WebGL fingerprint</button>
+      <button id="fp-audio">Run audio fingerprint</button>
+      <button id="fp-enum">Run enumeration probes</button>
+      <button id="all">Do everything (→ high)</button>
+    </div>
+
+    <pre id="out">ready.</pre>
+
+    <script>
+      const out = document.getElementById("out");
+      const log = (m) => (out.textContent = m + "\n" + out.textContent);
+
+      // A spread of tracker eTLD+1s the bundled list recognises, across orgs.
+      const TRACKERS = [
+        "google-analytics.com", "doubleclick.net", "googletagmanager.com",
+        "facebook.net", "connect.facebook.net", "criteo.com", "adnxs.com",
+        "scorecardresearch.com", "hotjar.com", "amazon-adsystem.com",
+        "demdex.net", "bluekai.com", "adsrvr.org", "pubmatic.com",
+        "taboola.com", "outbrain.com", "clarity.ms", "segment.com",
+      ];
+
+      document.getElementById("load-trackers").onclick = () => {
+        let n = 0;
+        for (const host of TRACKERS) {
+          const img = new Image();
+          img.src = `https://${host}/te-test.gif?cb=${Date.now()}_${n++}`;
+          img.onerror = () => {}; // expected
+          document.body.appendChild(img);
+        }
+        log(`requested ${TRACKERS.length} third-party tracker domains`);
+      };
+
+      document.getElementById("fp-canvas").onclick = () => {
+        const c = document.createElement("canvas"); // not appended => offscreen
+        const ctx = c.getContext("2d");
+        ctx.textBaseline = "top";
+        ctx.font = "14px Arial";
+        ctx.fillText("Tracker Eye fingerprint 😀", 2, 2);
+        for (const f of ["Arial", "Courier", "Times", "Verdana", "Georgia"]) {
+          ctx.font = `12px ${f}`;
+          ctx.measureText("mmmmmmmmmmlli");
+        }
+        log("canvas read-back: " + c.toDataURL().slice(0, 32) + "…");
+      };
+
+      document.getElementById("fp-webgl").onclick = () => {
+        const c = document.createElement("canvas");
+        const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+        if (!gl) return log("no WebGL");
+        const ext = gl.getExtension("WEBGL_debug_renderer_info");
+        const r = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : "?";
+        log("WebGL renderer: " + r);
+      };
+
+      document.getElementById("fp-audio").onclick = async () => {
+        try {
+          const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+          const ac = new Ctx(1, 44100, 44100);
+          const osc = ac.createOscillator();
+          const comp = ac.createDynamicsCompressor();
+          osc.connect(comp); comp.connect(ac.destination); osc.start(0);
+          const buf = await ac.startRendering();
+          log("audio fingerprint sample: " + buf.getChannelData(0)[0].toFixed(6));
+        } catch (e) { log("audio error: " + e.message); }
+      };
+
+      document.getElementById("fp-enum").onclick = () => {
+        const bits = [
+          new Date().getTimezoneOffset(),
+          (navigator.plugins || []).length,
+        ];
+        if (navigator.mediaDevices) navigator.mediaDevices.enumerateDevices().catch(() => {});
+        log("enumeration: tz=" + bits[0] + " plugins=" + bits[1]);
+      };
+
+      document.getElementById("all").onclick = () => {
+        document.getElementById("load-trackers").click();
+        document.getElementById("fp-canvas").click();
+        document.getElementById("fp-webgl").click();
+        document.getElementById("fp-audio").click();
+        document.getElementById("fp-enum").click();
+      };
+    </script>
+  </body>
+</html>
