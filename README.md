@@ -13,6 +13,33 @@ behaviour — gaze, blinking, pupil, posture — **never through text**.
 > signals; the eye is driven by a continuous tracking-intensity score. Loads as
 > an unpacked extension and packages as an `.xpi`/`.zip` for AMO.
 
+## What is new in 0.2
+
+Three additions, all aimed at one hypothesis: **making the consequence of
+tracking concrete should beat signalling its intensity.**
+
+* **Close inspection.** The eye no longer only floats in its corner reacting to
+  *how much* a page tracks. The moment you start filling in a field, it leaves
+  the corner, **flies to that field and reads along with your caret** — lids
+  wide, pupil dilated, barely blinking — then sweeps back over what you already
+  typed when you pause. How hard it stares scales with what the field asks for:
+  a hobby tick box barely registers, a date of birth gets a stare.
+  ([§5b](#5b--close-inspection-the-eye-reads-what-you-type))
+* **Skins.** The eye can wear the colours of the company doing the watching —
+  Google, Amazon, or neutral — toggled in the popup. In **auto** mode it takes
+  on the palette of whichever organisation is actually the heaviest tracker on
+  the current page. ([§5c](#5c--skins-whose-eye-is-this))
+* **A study fixture site.** `docs/study-site/` is a fictional shop ("Nimbus
+  Market") with a four-step sign-up flow that asks for progressively more
+  personal data, with mocked tracking on every page. `npm run study` serves it.
+  ([§8](#8--the-study-fixture-site))
+
+A by-product that the study needs anyway: the extension now keeps a
+**disclosure log** — for every field filled in, its *kind* (name, e-mail,
+birthday…), its visible label and a character count, with a timestamp. That is
+the ground truth to check recall answers against. **What is typed is never
+read, stored or transmitted** — only measured.
+
 ---
 
 ## Table of contents
@@ -22,11 +49,14 @@ behaviour — gaze, blinking, pupil, posture — **never through text**.
 3. [Deliverable 3 — Source code layout](#3--source-code-layout)
 4. [Deliverable 4 — Tracking-intensity scoring](#4--tracking-intensity-scoring-logic)
 5. [Deliverable 5 — Animated Tracker Eye](#5--animated-tracker-eye-implementation)
+   * [5b — Close inspection](#5b--close-inspection-the-eye-reads-what-you-type)
+   * [5c — Skins](#5c--skins-whose-eye-is-this)
 6. [Build instructions](#build-instructions)
 7. [Deliverable 6 — Loading into Firefox](#6--loading-into-firefox-aboutdebugging)
 8. [Deliverable 7 — Licensing implications](#7--licensing-implications)
-9. [Using it in a user study](#using-it-in-a-user-study)
-10. [Limitations & honest caveats](#limitations--honest-caveats)
+9. [The study fixture site](#8--the-study-fixture-site)
+10. [Using it in a user study](#using-it-in-a-user-study)
+11. [Limitations & honest caveats](#limitations--honest-caveats)
 
 ---
 
@@ -106,8 +136,10 @@ and streams that score to a content-script overlay that animates the eye.
                                    ▼                                                    │
    ┌──────────────────── CONTENT SCRIPT (top frame, isolated world) ───────────────────┴───────────────┐
    │  EyeOverlay (Shadow DOM, pointer-events:none)        ◄── intensity-update + config                │
-   │      └─ Eye (Canvas 2D state machine: gaze / blink / lids / pupil / drift)                         │
+   │      └─ Eye (Canvas 2D state machine: gaze / blink / lids / pupil / placement / skin)              │
    │  mousemove ──► eye.setCursor()                                                                     │
+   │  FieldWatcher  focusin/input/change ──► fields.classify() ──► eye.inspect(field)                   │
+   │      └─ kind + label + length ──► disclosure-report ──► background log  (never the value)          │
    │  injects ▼                                                                                         │
    │  ┌──────────── PAGE WORLD ────────────┐                                                            │
    │  │ fingerprint-probe.js               │  wraps canvas / WebGL / AudioContext / enumeration APIs    │
@@ -127,7 +159,13 @@ and streams that score to a content-script overlay that animates the eye.
 * **Continuous score, smoothed display.** The background computes a target
   intensity; the eye eases toward it so transitions feel organic, never snappy.
 * **Isolation.** The eye lives in a Shadow DOM with `pointer-events:none`, so the
-  page's CSS can't touch it and it can never intercept a click.
+  page's CSS can't touch it and it can never intercept a click — including while
+  it is parked next to the field you are typing into.
+* **The typed value never leaves the page.** The field watcher measures what is
+  entered (how many characters, where the caret is on screen) but never reads
+  the content out: nothing crosses the content-script boundary except the
+  field's *kind*, its visible label and a count. Passwords are measured from
+  bullets.
 * **Typed message protocol.** Every cross-context message is one discriminated
   union (`src/shared/messages.ts`) — auditable and type-safe.
 
@@ -153,16 +191,21 @@ src/
   content/
     index.ts                    inject probe, mount eye, cursor, intensity updates
     fingerprint-probe.ts        page-world fingerprinting detector
+    fields.ts                   ▶ what a form field asks for + where the caret is
+    field-watcher.ts            ▶ focus/typing → send the eye there, log the kind
     eye/
       behavior.ts               ▶ Deliverable 5a: intensity → behaviour params
       eye.ts                    ▶ Deliverable 5b: Canvas eye + state machine
-      overlay.ts                Shadow-DOM host, corner placement, HiDPI canvas
+      overlay.ts                Shadow-DOM host, HiDPI canvas
+      skins.ts                  ▶ palettes: neutral / Google / Amazon / auto
   popup/                        research/debug panel (HTML/CSS/TS)
 scripts/
   build.mjs                     esbuild bundler  →  dist/
   package.mjs                   zip dist/  →  web-ext-artifacts/*.zip
   import-trackers.mjs           regenerate the full Disconnect list
+  serve.mjs                     static server for the study fixture
 docs/test-page.html             local fixture that triggers trackers + fingerprinting
+docs/study-site/                ▶ "Nimbus Market": the study site (see §8)
 ```
 
 Everything that is **new for Tracker Eye** (the eye and its driving signal) is
@@ -240,6 +283,83 @@ continuum. Mapping (brief → implementation):
 
 Rendering pauses automatically for hidden tabs (via `requestAnimationFrame`).
 
+### 5b · Close inspection: the eye reads what you type
+
+`src/content/field-watcher.ts` + `src/content/fields.ts` + the inspection branch
+of `behavior.ts` / `eye.ts`.
+
+The corner eye answers *"how closely is this page watching me?"*. Close
+inspection answers the sharper question *"what is it watching me do?"* — which
+is the manipulation the 0.2 study design rests on.
+
+**Trigger.** Any `focusin` / `input` / `change` on an `<input>`, `<textarea>`,
+`<select>` or contenteditable, captured at the document. Inspection is armed
+only while the page's intensity is above the `idle` band: on a page nobody
+tracks, the eye stays relaxed in its corner even while you fill in a form. That
+keeps the cue honest, and makes "tracked page" vs. "untracked page" a usable
+within-subject contrast.
+
+**Flight.** The overlay host is pinned to the viewport origin and the eye
+positions *itself*, so the corner anchor, the low-intensity drift and the flight
+to a field are all the same eased motion — it never teleports. It parks to the
+right of the field, or left / above / below when there is no room, shrinking to
+~55 % so it sits beside an input without covering the page. The field's
+geometry is re-read every frame, so the eye follows scrolling and layout shifts,
+and flies home when the field scrolls out of sight.
+
+**The look itself.** While inspecting: lids at maximum, pupil 0.68–0.92 of the
+iris, blink interval 9–20 s (it does not want to miss a keystroke), no drift,
+gaze pinned to the caret with over-gain. When you pause for more than ~0.65 s,
+the gaze sweeps back and forth over what you already typed — the "let me read
+that again" pass. On blur it keeps reading for ~1.1 s before flying home.
+
+**Sensitivity.** How extreme all of that gets scales with what the field asks
+for (`KIND_SENSITIVITY` in `fields.ts`):
+
+| Kind | Sensitivity | Recognised from |
+|---|---|---|
+| payment, identifier | 1.00 | `cc-*` autocomplete, card/IBAN/SSN/passport wording |
+| password | 0.95 | `type="password"` |
+| account-link | 0.85 | "connect / link account / sign in with" on a tick box |
+| birthday, address | 0.80 | `bday`/`street-address`/… autocomplete, date inputs |
+| phone | 0.75 | `type="tel"`, phone wording |
+| email | 0.70 | `type="email"` |
+| gender, name | 0.60 | `sex`/`given-name`/… autocomplete, label wording |
+| preferences | 0.45 | tick boxes, dropdowns, "interests / newsletter / opt-in" |
+| other | 0.35 | anything else |
+
+Classification runs `type` → `autocomplete` token → label/name/placeholder
+regex → structural fallback, most sensitive pattern first (so "Name on card"
+reads as payment, not as a name), and a tick box can never be classified as an
+e-mail address however much its label mentions one.
+
+**What is recorded.** One `disclosure-report` per field per editing session,
+carrying `{kind, label, chars, sensitivity}`. The background stamps it with the
+time and page domain and appends it to the exportable log; the popup lists the
+fields filled in on the current page. **The typed value is never read out of the
+page** — the only thing derived from it is a length and a caret x-position, and
+for password fields even that is measured from bullets.
+
+### 5c · Skins: whose eye is this?
+
+`src/content/eye/skins.ts`. A skin is a palette plus at most two ornaments
+(brand-coloured segments around the iris rim, an accent arc under the eye). No
+logotypes, no text — the eye still communicates only through behaviour and
+colour.
+
+| Skin | Iris (calm → alert) | Ornament |
+|---|---|---|
+| `neutral` | steel blue → amber | — |
+| `google` | `#4285F4` → `#EA4335` | four-colour rim segments, slowly turning |
+| `amazon` | `#146EB4` → `#FF9900` | warm arc under the eye |
+| `auto` | follows the page | the skin of whichever organisation tracks this page hardest |
+
+`auto` reads `IntensityResult.dominantOrganization` — tracker requests weighted
+by category — so on a Google-heavy page a Google-coloured eye reads your e-mail
+address over your shoulder, and on an Amazon-heavy page an Amazon-coloured one
+reads your interests. That is the "concrete consequence" manipulation in its
+strongest form, and it needs no per-site configuration.
+
 ---
 
 ## Build instructions
@@ -253,6 +373,7 @@ npm run typecheck    # optional: strict tsc --noEmit
 npm run check        # typecheck + build
 npm run watch        # rebuild on change during development
 npm run package      # build + zip → web-ext-artifacts/tracker-eye-<v>.zip
+npm run study        # serve the study fixture → http://localhost:8137
 npm run import:trackers   # optional: regenerate the FULL Disconnect list
 ```
 
@@ -308,18 +429,73 @@ Full detail in **`NOTICE.md`**. Summary:
 
 ---
 
+## 8 · The study fixture site
+
+`docs/study-site/` is **Nimbus Market**, a fictional shop that exists so both
+study conditions fill in exactly the same forms, with the same tracking, in the
+same order. Full detail in `docs/study-site/README.md`.
+
+```bash
+npm run study        # http://localhost:8137
+```
+
+| Step | Page | Discloses | Tracking profile |
+|---|---|---|---|
+| — | `index.html` | nothing (landing) | mixed |
+| 1 | `signup.html` | name, e-mail, password, date of birth, gender | **Google-heavy** |
+| 2 | `profile.html` | street, postcode, city, country, phone, occupation, household | mixed |
+| 3 | `interests.html` | hobbies, category, budget, free-text bio, newsletter opt-in | **Amazon-heavy** |
+| 4 | `connect.html` | connected accounts, a *friend's* e-mail, ad-personalisation consent | mixed |
+| — | `done.html` | nothing — deliberately no recap | mixed |
+
+With the eye's skin on **auto**, step 1 is watched by a Google-coloured eye and
+step 3 by an Amazon-coloured one, because that is who actually loads on those
+pages. `done.html` does not summarise what was entered: the study measures what
+participants *remember* disclosing, so the site must not remind them.
+
+The fixture **never submits anything** — "Continue" cancels the submit and
+navigates, so nothing typed is stored, sent, or put in a URL. Its mock tracking
+beacons carry the page, the event, the *name* of the field and a character
+count, to the real tracker hostnames (the extension classifies by domain, so a
+local stand-in would not be recognised); those requests fail, which is fine
+because the extension only needs to observe the attempt. `fixture-notes.html`,
+linked as "Privacy" in the footer, says all of this in plain language — honest
+to anyone who looks, without a banner that would prime participants.
+
+> Serve it over http rather than opening the files: on `file://` URLs Firefox
+> treats content scripts and `webRequest` differently and the page has no
+> registrable domain, so first-party/third-party classification does not behave
+> the way it will in the study.
+
+`docs/test-page.html` remains as the quick bench for driving the eye to
+extremes by hand.
+
+---
+
 ## Using it in a user study
 
 The popup is built for experimental control:
 
 * **Show the eye** — master on/off: run a **control (off)** vs. **treatment
   (on)** condition with identical detection/logging underneath.
+* **Fly to fields I fill in** — close inspection on/off. Off gives you the 0.1
+  behaviour (corner eye, intensity only), which is the natural comparison
+  condition for H1: *does showing the consequence beat showing the intensity?*
+* **Skin** — neutral / Google / Amazon / auto: whether the eye is anonymous or
+  visibly belongs to the company doing the tracking.
 * **Override intensity** — pin the eye to a fixed value (0–100 %) to script
-  manipulation conditions independent of the actual site.
+  manipulation conditions independent of the actual site. Note that inspection
+  is armed off this value too, so an override of 0 also disables the flight.
 * **Corner / size** — placement and salience.
 * **Log samples (1 Hz)** + **Export log (JSON)** — per-second
-  `{t, pageDomain, intensity, band, counts}` for later analysis (e.g. correlating
-  eye intensity with a disclosure-task outcome).
+  `{t, pageDomain, intensity, band, counts}` **plus** a `disclosures` array of
+  `{t, pageDomain, kind, label, chars, sensitivity}`, one entry per field filled
+  in. The second array is the ground truth to score recall answers against:
+  what participants actually disclosed, versus what they report disclosing.
+
+A three-condition design falls straight out of those switches: **no eye** /
+**corner eye only** (intensity signalling) / **eye + close inspection**
+(consequence signalling).
 
 Reproducibility: detection is list-based, so a given site yields the same signal
 for every participant (unlike a learning-based detector).
@@ -339,6 +515,18 @@ for every participant (unlike a learning-based detector).
   still partition/block them. The *attempt* is the tracking signal we want.
 * **Not a blocker.** Tracker Eye deliberately does not block anything — it is a
   measurement-and-display instrument for research, not a protection tool.
+* **Close inspection sees the top frame only.** Fields inside cross-origin
+  iframes (hosted checkout forms, embedded sign-up widgets) are invisible to the
+  watcher, because the content script runs with `all_frames: false`. Fields
+  inside a page's own shadow DOM are also missed: `focusin` retargets to the
+  host element. Both are fine for the fixture; check them if you point the study
+  at a real site.
+* **Field classification is heuristic.** It reads `type`, `autocomplete`,
+  labels, names and placeholders. A site with unlabelled, obfuscated inputs
+  yields `other` (sensitivity 0.35) — the eye still flies over, it just does not
+  know what it is reading.
+* **Character counts are approximate for exotic controls.** A `<select>` or tick
+  box is logged as 1 character ("chose something"), not as the option's text.
 * **Temporary add-on** resets on restart; sign it for long studies.
 
 ---

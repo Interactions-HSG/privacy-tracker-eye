@@ -6,7 +6,12 @@
 
 import { computeIntensity } from "../shared/intensity";
 import type { Message } from "../shared/messages";
-import { DEFAULT_CONFIG, type Config, type IntensityResult } from "../shared/types";
+import {
+  DEFAULT_CONFIG,
+  type Config,
+  type DisclosureEvent,
+  type IntensityResult,
+} from "../shared/types";
 import { installRequestObserver } from "./request-observer";
 import { TabStateStore } from "./tab-state";
 import { registrableDomain } from "./tracker-engine";
@@ -80,6 +85,14 @@ interface LogSample {
 const log: LogSample[] = [];
 const LOG_CAP = 10_000;
 
+/**
+ * Every disclosure the participant made, in order. This is the ground truth a
+ * study needs when it asks "which data did you just hand over?" — and it holds
+ * kinds, labels and lengths only, never a typed value.
+ */
+const disclosureLog: DisclosureEvent[] = [];
+const DISCLOSURE_CAP = 5_000;
+
 setInterval(async () => {
   if (!config.logging) return;
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -152,6 +165,25 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
       }
       return false;
     }
+    case "disclosure-report": {
+      const tabId = sender.tab?.id;
+      if (tabId !== undefined) {
+        const signals = store.recordDisclosure(tabId, message.kind, message.label, message.chars);
+        disclosureLog.push({
+          t: Date.now(),
+          pageDomain: signals?.pageDomain ?? "",
+          kind: message.kind,
+          label: message.label,
+          chars: message.chars,
+          sensitivity: message.sensitivity,
+        });
+        if (disclosureLog.length > DISCLOSURE_CAP) {
+          disclosureLog.splice(0, disclosureLog.length - DISCLOSURE_CAP);
+        }
+        dirtyTabs.add(tabId);
+      }
+      return false;
+    }
     case "get-snapshot": {
       return (async () => {
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -165,7 +197,15 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
       return saveConfig(message.config).then(() => ({ type: "snapshot", signals: null, result: null, config }) as Message);
     }
     case "export-log": {
-      const json = JSON.stringify({ exportedAt: new Date().toISOString(), samples: log }, null, 2);
+      const json = JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          samples: log,
+          disclosures: disclosureLog,
+        },
+        null,
+        2,
+      );
       return Promise.resolve({ type: "export-log-result", json } as Message);
     }
     default:

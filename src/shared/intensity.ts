@@ -30,6 +30,25 @@ export function fingerprintingScore(fp: FingerprintEvidence): number {
   return clamp01(s);
 }
 
+/**
+ * The organisation with the heaviest presence on this page: tracker requests
+ * weighted by how invasive the organisation's category is. Used to decide whose
+ * colours the eye wears in "auto" skin mode, i.e. *who* is doing the watching.
+ */
+export function dominantOrganization(signals: TabSignals): string | null {
+  let best: string | null = null;
+  let bestScore = 0;
+  for (const [org, requests] of Object.entries(signals.organizationRequests)) {
+    const category = signals.organizations[org] ?? "unknown";
+    const score = requests * SCORING.categoryWeight[category];
+    if (score > bestScore) {
+      best = org;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
 /** Sum of per-organisation category weights => "effective organisation count". */
 function weightedOrganizationCount(signals: TabSignals): number {
   let total = 0;
@@ -77,6 +96,7 @@ export function computeIntensity(signals: TabSignals): IntensityResult {
   return {
     intensity,
     band: bandFor(intensity),
+    dominantOrganization: dominantOrganization(signals),
     components,
     counts: {
       organizations: Object.keys(signals.organizations).length,

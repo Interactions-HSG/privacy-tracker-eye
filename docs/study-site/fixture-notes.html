@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>About this site — Nimbus Market</title>
+    <link rel="stylesheet" href="assets/site.css" />
+  </head>
+  <body>
+    <header class="site">
+      <a class="brand" href="index.html">nimbus<span>·</span>market</a>
+      <nav><a href="index.html">Back</a></nav>
+    </header>
+
+    <main class="notes">
+      <h1>About this site</h1>
+      <p>
+        <b>Nimbus Market does not exist.</b> This is a research fixture: a
+        fictional shop used in a university study on how people perceive online
+        tracking, and a test bench for the Tracker&nbsp;Eye browser extension.
+      </p>
+
+      <h2>What happens to what you type</h2>
+      <ul>
+        <li>
+          <b>Nothing is submitted.</b> The forms never POST or GET anywhere.
+          Pressing “Continue” only moves to the next page (see
+          <code>assets/next.js</code>); what you typed disappears with the page.
+        </li>
+        <li>
+          <b>Nothing is stored.</b> No cookies, no local storage, no server — the
+          pages are static files served from the researcher's own machine.
+        </li>
+        <li>
+          <b>The tracking beacons carry field <em>names</em>, never values.</b>
+          The page fires pixels to real advertising and analytics domains
+          (<code>google-analytics.com</code>, <code>amazon-adsystem.com</code>, …)
+          carrying the page name, the event, the name of the field you are in
+          and how many characters it holds — the same shape of data a real shop
+          leaks. The requests fail, because no such endpoint exists; the point is
+          only that a tracker-aware extension can observe the attempt. The code
+          is in <code>assets/mock-tracking.js</code> and can be read in full.
+        </li>
+      </ul>
+
+      <h2>What the Tracker Eye extension does here</h2>
+      <p>
+        If the study's browser extension is installed, it observes those requests
+        the way it observes any site, and shows an eye whose attention reflects
+        how heavily the page is being tracked. When you start filling in a field,
+        the eye flies over and reads along. The extension records the
+        <em>kind</em> of field (name, e-mail, birthday…) and how many characters
+        it holds — never the characters themselves — so the researchers can
+        compare what people actually disclosed with what they remember
+        disclosing.
+      </p>
+    </main>
+
+    <footer class="site">
+      <span>© Nimbus Market — a fictional shop</span>
+    </footer>
+  </body>
+</html>

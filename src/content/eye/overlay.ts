@@ -1,56 +1,29 @@
 // Overlay host for the eye.
 // -----------------------------------------------------------------------------
-// Creates a fixed, click-through, style-isolated (Shadow DOM) container in the
-// chosen screen corner and hosts the eye's <canvas>. Style isolation means the
-// page's CSS cannot affect the eye and vice versa. pointer-events:none means the
-// eye never intercepts clicks — it only watches.
+// Creates a fixed, click-through, style-isolated (Shadow DOM) container and
+// hosts the eye's <canvas> inside it. Style isolation means the page's CSS
+// cannot affect the eye and vice versa. pointer-events:none means the eye never
+// intercepts clicks — it only watches.
+//
+// Since v0.2 the host is pinned to the viewport origin and the eye positions
+// *itself* with a transform (see Eye.targetPlacement), because it no longer
+// only sits in a corner: it flies to whatever field is being filled in.
 
+import { resolveSkin } from "./skins";
 import type { Config } from "../../shared/types";
-import { Eye } from "./eye";
+import { Eye, type InspectionTarget } from "./eye";
 
 const ROOT_ID = "tracker-eye-root";
-
-interface Vec {
-  x: number;
-  y: number;
-}
-
-/** Unit vector pointing "off the screen" for each corner (for the drift). */
-function driftDirectionFor(corner: Config["corner"]): Vec {
-  switch (corner) {
-    case "top-right":
-      return { x: 1, y: -1 };
-    case "top-left":
-      return { x: -1, y: -1 };
-    case "bottom-right":
-      return { x: 1, y: 1 };
-    case "bottom-left":
-      return { x: -1, y: 1 };
-  }
-}
-
-function cornerStyles(corner: Config["corner"]): Partial<CSSStyleDeclaration> {
-  const m = "18px";
-  switch (corner) {
-    case "top-right":
-      return { top: m, right: m };
-    case "top-left":
-      return { top: m, left: m };
-    case "bottom-right":
-      return { bottom: m, right: m };
-    case "bottom-left":
-      return { bottom: m, left: m };
-  }
-}
+const MARGIN = 18;
 
 export class EyeOverlay {
   private root: HTMLElement | null = null;
   private eye: Eye | null = null;
   private config: Config | null = null;
+  private pendingInspection: InspectionTarget | null = null;
 
   /** Create or update the overlay for the given config. */
-  apply(config: Config): void {
-    const cornerChanged = this.config?.corner !== config.corner;
+  apply(config: Config, dominantOrganization: string | null): void {
     const sizeChanged = this.config?.size !== config.size;
 
     if (!config.eyeEnabled) {
@@ -59,9 +32,11 @@ export class EyeOverlay {
       return;
     }
 
-    if (!this.root || cornerChanged || sizeChanged) {
+    if (!this.root || sizeChanged) {
       this.rebuild(config);
     }
+    this.eye?.setLayout(this.layoutFor(config));
+    this.eye?.setSkin(resolveSkin(config.skin, dominantOrganization));
     this.config = config;
   }
 
@@ -73,6 +48,21 @@ export class EyeOverlay {
     this.eye?.setCursor(x, y);
   }
 
+  /** Send the eye to a form field (or call with null to send it home). */
+  inspect(target: InspectionTarget | null): void {
+    this.pendingInspection = target;
+    this.eye?.inspect(target);
+  }
+
+  private layoutFor(config: Config) {
+    return {
+      corner: config.corner,
+      margin: MARGIN,
+      width: config.size,
+      height: Math.round(config.size * 0.8), // taller canvas => rounder eye
+    };
+  }
+
   private rebuild(config: Config): void {
     this.destroy();
 
@@ -80,32 +70,36 @@ export class EyeOverlay {
     root.id = ROOT_ID;
     Object.assign(root.style, {
       position: "fixed",
+      left: "0",
+      top: "0",
       zIndex: "2147483647", // top of the stack
       pointerEvents: "none",
       width: "0",
       height: "0",
     });
-    Object.assign(root.style, cornerStyles(config.corner));
 
     const shadow = root.attachShadow({ mode: "open" });
 
     const wrapper = document.createElement("div");
     Object.assign(wrapper.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      transformOrigin: "0 0", // so translate() places the box's top-left exactly
       pointerEvents: "none",
       willChange: "transform",
       filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.25))",
     });
 
-    const w = config.size;
-    const h = Math.round(config.size * 0.8); // taller canvas => rounder eye
+    const layout = this.layoutFor(config);
     const dpr = Math.min(3, window.devicePixelRatio || 1);
 
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
+    canvas.width = Math.round(layout.width * dpr);
+    canvas.height = Math.round(layout.height * dpr);
     Object.assign(canvas.style, {
-      width: `${w}px`,
-      height: `${h}px`,
+      width: `${layout.width}px`,
+      height: `${layout.height}px`,
       display: "block",
     });
 
@@ -116,7 +110,9 @@ export class EyeOverlay {
     (document.documentElement || document.body).appendChild(root);
 
     this.root = root;
-    this.eye = new Eye(canvas, wrapper, driftDirectionFor(config.corner));
+    this.eye = new Eye(canvas, wrapper, layout);
+    this.eye.setSkin(resolveSkin(config.skin, null));
+    if (this.pendingInspection) this.eye.inspect(this.pendingInspection);
     this.eye.start();
   }
 

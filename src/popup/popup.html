@@ -37,6 +37,11 @@
       <ul id="org-list"><li class="muted">none yet</li></ul>
     </details>
 
+    <details class="orgs" id="disclosed" open>
+      <summary>What you typed here <em id="watcher">—</em></summary>
+      <ul id="disclosure-list"><li class="muted">nothing yet</li></ul>
+    </details>
+
     <hr />
 
     <section class="controls">
@@ -58,6 +63,21 @@
       <label class="row">
         <span>Size <em id="size-val">320</em>px</span>
         <input type="range" id="size" min="160" max="640" step="20" />
+      </label>
+
+      <label class="row">
+        <span>Skin</span>
+        <select id="skin">
+          <option value="neutral">neutral</option>
+          <option value="google">Google</option>
+          <option value="amazon">Amazon</option>
+          <option value="auto">auto (whoever tracks)</option>
+        </select>
+      </label>
+
+      <label class="row">
+        <span>Fly to fields I fill in</span>
+        <input type="checkbox" id="inspection" />
       </label>
 
       <label class="row">

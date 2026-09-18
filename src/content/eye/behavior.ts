@@ -12,6 +12,13 @@
 //   High (intensely interested): locks a direct forward gaze, aggressive cursor
 //     pursuit, wide lids, rare blinks, dilated pupil, comes forward (no drift),
 //     subtle alert micro-motion.
+//
+// On top of that continuum sits ONE discrete state — close inspection — for the
+// moment the participant is actually disclosing something (see fields.ts). There
+// the eye stops caring about the cursor and reads the field: lids at maximum,
+// pupil wide, blinking almost suppressed, gaze pinned to the caret. How extreme
+// it gets scales with the *sensitivity* of the field (a hobby checkbox barely
+// registers; a date of birth gets a stare).
 
 export interface BehaviorParams {
   /** 0 = ignore cursor/user and wander, 1 = fully target cursor/user. */
@@ -66,5 +73,53 @@ export function behaviorFor(intensity: number): BehaviorParams {
     screenDrift: lerp(0.42, 0.0, smoothstep(I)),
     microMotion: lerp(0, 0.7, smoothstep((I - 0.5) / 0.5)),
     irisIntensity: I,
+  };
+}
+
+/**
+ * Behaviour while the eye is reading a form field from close up.
+ *
+ * @param sensitivity how revealing the field is, in [0,1] (see fields.ts)
+ * @param intensity   the page's measured tracking intensity, so a heavily
+ *                    tracked page still inspects harder than a quiet one
+ */
+export function inspectionBehaviorFor(sensitivity: number, intensity: number): BehaviorParams {
+  const s = clamp01(sensitivity);
+  // Inspecting always implies a floor of arousal, raised further by sensitivity.
+  const I = Math.max(clamp01(intensity), lerp(0.5, 0.95, s));
+  return {
+    ...behaviorFor(I),
+    attention: 1, // the cursor is irrelevant now; the field is everything
+    pursuitGain: 1.15, // slight over-gain so the iris pins to the caret
+    pursuitSmoothing: lerp(0.16, 0.3, s),
+    blinkIntervalMs: lerp(9000, 20000, s), // it does not want to miss a keystroke
+    blinkDurationMs: 130,
+    lidOpenness: 1,
+    pupilDilation: lerp(0.68, 0.92, s),
+    saccadeIntervalMs: 5000,
+    wanderAmplitude: 0.12,
+    screenDrift: 0, // never off-screen while inspecting
+    microMotion: lerp(0.25, 0.9, s),
+    irisIntensity: I,
+  };
+}
+
+/** Linear blend of two behaviour parameter sets (t = 0 -> a, 1 -> b). */
+export function blendBehavior(a: BehaviorParams, b: BehaviorParams, t: number): BehaviorParams {
+  const k = clamp01(t);
+  const mix = (key: keyof BehaviorParams) => lerp(a[key], b[key], k);
+  return {
+    attention: mix("attention"),
+    pursuitGain: mix("pursuitGain"),
+    pursuitSmoothing: mix("pursuitSmoothing"),
+    blinkIntervalMs: mix("blinkIntervalMs"),
+    blinkDurationMs: mix("blinkDurationMs"),
+    lidOpenness: mix("lidOpenness"),
+    pupilDilation: mix("pupilDilation"),
+    saccadeIntervalMs: mix("saccadeIntervalMs"),
+    wanderAmplitude: mix("wanderAmplitude"),
+    screenDrift: mix("screenDrift"),
+    microMotion: mix("microMotion"),
+    irisIntensity: mix("irisIntensity"),
   };
 }

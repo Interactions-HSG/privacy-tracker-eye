@@ -1,7 +1,13 @@
 // The complete set of messages exchanged between contexts. Keeping them in one
 // discriminated union makes the protocol auditable and type-safe.
 
-import type { Config, FingerprintEvidence, IntensityResult, TabSignals } from "./types";
+import type {
+  Config,
+  DisclosureKind,
+  FingerprintEvidence,
+  IntensityResult,
+  TabSignals,
+} from "./types";
 
 /** content script -> background: the eye has mounted, send me current state. */
 export interface HelloMessage {
@@ -19,6 +25,20 @@ export interface IntensityUpdateMessage {
 export interface FingerprintReportMessage {
   type: "fingerprint-report";
   evidence: Partial<FingerprintEvidence>;
+}
+
+/**
+ * content script -> background: the participant filled in a form field.
+ *
+ * PRIVACY INVARIANT: this carries the *kind* of field, its visible label and a
+ * character count only. The typed value never leaves the content script.
+ */
+export interface DisclosureReportMessage {
+  type: "disclosure-report";
+  kind: DisclosureKind;
+  label: string;
+  chars: number;
+  sensitivity: number;
 }
 
 /** popup -> background: give me the snapshot for the active tab. */
@@ -54,6 +74,7 @@ export type Message =
   | HelloMessage
   | IntensityUpdateMessage
   | FingerprintReportMessage
+  | DisclosureReportMessage
   | GetSnapshotMessage
   | SnapshotMessage
   | SetConfigMessage

@@ -6,13 +6,17 @@
 //   2. Mount the Tracker Eye overlay and feed it the current cursor position.
 //   3. Receive intensity-update messages and drive the eye (honouring the
 //      research intensity override when set).
+//   4. Watch the form fields the participant fills in, send the eye over to
+//      read along, and report the *kind* of each disclosure to the background.
 
+import { SCORING } from "../shared/scoring-config";
 import {
   PROBE_MESSAGE_TAG,
   type Message,
   type ProbeWindowMessage,
 } from "../shared/messages";
 import { EyeOverlay } from "./eye/overlay";
+import { FieldWatcher } from "./field-watcher";
 
 const overlay = new EyeOverlay();
 
@@ -39,15 +43,31 @@ window.addEventListener("message", (event) => {
     .catch(() => {});
 });
 
+// --- 4. Close inspection of form fields -------------------------------------
+const watcher = new FieldWatcher({
+  onInspect: (target) => overlay.inspect(target),
+  onDisclosure: (kind, label, chars, sensitivity) => {
+    // Kind, label and length only — the typed value stays in this page.
+    void browser.runtime
+      .sendMessage({ type: "disclosure-report", kind, label, chars, sensitivity } satisfies Message)
+      .catch(() => {});
+  },
+});
+watcher.install();
+
 // --- 2 & 3. Eye overlay + intensity updates ---------------------------------
 browser.runtime.onMessage.addListener((message: Message) => {
   if (message.type !== "intensity-update") return;
-  overlay.apply(message.config);
+  const config = message.config;
+  overlay.apply(config, message.result.dominantOrganization);
+
   const value =
-    message.config.intensityOverride !== null
-      ? message.config.intensityOverride
-      : message.result.intensity;
+    config.intensityOverride !== null ? config.intensityOverride : message.result.intensity;
   overlay.setIntensity(value);
+
+  // The eye only leans in on pages where something is actually watching; on a
+  // quiet page it stays relaxed in its corner even while a form is filled in.
+  watcher.setEnabled(config.eyeEnabled && config.inspection && value >= SCORING.bands.low);
 });
 
 // Feed cursor movement to the eye (throttled to animation cadence by the eye).

@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "Tracker Eye",
-  "version": "0.1.0",
-  "description": "Makes invisible online tracking visible through an anthropomorphic eye that watches you back as you are being tracked. Research prototype.",
+  "version": "0.2.0",
+  "description": "Makes invisible online tracking visible through an anthropomorphic eye that watches you back as you are being tracked — and flies over to read along when you fill in a form. Research prototype.",
 
   "browser_specific_settings": {
     "gecko": {

@@ -4,7 +4,12 @@
 // navigates to a new top-level document, so the intensity always reflects the
 // page the user is currently looking at.
 
-import type { FingerprintEvidence, TabSignals, TrackerHit } from "../shared/types";
+import type {
+  DisclosureKind,
+  FingerprintEvidence,
+  TabSignals,
+  TrackerHit,
+} from "../shared/types";
 
 function emptyFingerprint(): FingerprintEvidence {
   return { canvas: 0, webgl: 0, audio: 0, fonts: 0, enumeration: 0 };
@@ -16,10 +21,12 @@ function freshSignals(tabId: number, pageDomain: string): TabSignals {
     pageDomain,
     trackerDomains: {},
     organizations: {},
+    organizationRequests: {},
     trackerRequestCount: 0,
     thirdPartyRequestCount: 0,
     thirdPartyCookieDomains: {},
     fingerprinting: emptyFingerprint(),
+    disclosures: {},
     lastUpdate: Date.now(),
   };
 }
@@ -52,6 +59,8 @@ export class TabStateStore {
       signals.trackerDomains[tracker.domain] = tracker;
       // Keep the strongest-known category if an org appears under several.
       signals.organizations[tracker.organization] = tracker.category;
+      signals.organizationRequests[tracker.organization] =
+        (signals.organizationRequests[tracker.organization] ?? 0) + 1;
     }
     signals.lastUpdate = Date.now();
     return signals;
@@ -62,6 +71,24 @@ export class TabStateStore {
     const signals = this.tabs.get(tabId);
     if (!signals) return undefined;
     signals.thirdPartyCookieDomains[domain] = true;
+    signals.lastUpdate = Date.now();
+    return signals;
+  }
+
+  /**
+   * Record that a field was filled in on this page. Keyed by kind + label so
+   * revising an entry updates one row instead of inflating the tally. The typed
+   * value never reaches the background — only its length.
+   */
+  recordDisclosure(
+    tabId: number,
+    kind: DisclosureKind,
+    label: string,
+    chars: number,
+  ): TabSignals | undefined {
+    const signals = this.tabs.get(tabId);
+    if (!signals) return undefined;
+    signals.disclosures[`${kind}:${label}`] = { kind, label, chars, t: Date.now() };
     signals.lastUpdate = Date.now();
     return signals;
   }

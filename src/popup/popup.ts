@@ -26,6 +26,10 @@ function renderReadout(signals: TabSignals | null, result: IntensityResult | nul
   $("c-third").textContent = String(result?.counts.thirdPartyRequests ?? 0);
   $("c-fp").textContent = `${Math.round((result?.components.fingerprinting ?? 0) * 100)}%`;
 
+  $("watcher").textContent = result?.dominantOrganization ?? "—";
+
+  renderDisclosures(signals);
+
   const list = $("org-list");
   const orgs = signals ? Object.entries(signals.organizations) : [];
   list.replaceChildren();
@@ -48,11 +52,46 @@ function renderReadout(signals: TabSignals | null, result: IntensityResult | nul
   }
 }
 
+/**
+ * The list of fields filled in on this page. Labels and lengths only — the
+ * extension never sees, stores or displays what was typed.
+ */
+function renderDisclosures(signals: TabSignals | null): void {
+  const list = $("disclosure-list");
+  const fields = Object.values(signals?.disclosures ?? {}).sort((a, b) => a.t - b.t);
+  list.replaceChildren();
+
+  if (fields.length === 0) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent = "nothing yet";
+    list.appendChild(li);
+    return;
+  }
+
+  for (const field of fields) {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    name.className = "field";
+    name.textContent = field.label; // textContent => no HTML injection
+    const kind = document.createElement("span");
+    kind.className = "kind";
+    kind.textContent = field.kind;
+    const chars = document.createElement("span");
+    chars.className = "chars";
+    chars.textContent = `${field.chars} ch`;
+    li.append(name, kind, chars);
+    list.appendChild(li);
+  }
+}
+
 function renderConfig(config: Config): void {
   ($("eyeEnabled") as HTMLInputElement).checked = config.eyeEnabled;
   ($("corner") as HTMLSelectElement).value = config.corner;
   ($("size") as HTMLInputElement).value = String(config.size);
   $("size-val").textContent = String(config.size);
+  ($("skin") as HTMLSelectElement).value = config.skin;
+  ($("inspection") as HTMLInputElement).checked = config.inspection;
   ($("logging") as HTMLInputElement).checked = config.logging;
 
   const overrideOn = $("overrideOn") as HTMLInputElement;
@@ -91,6 +130,12 @@ function wire(): void {
   });
   $("size").addEventListener("change", (e) =>
     void patchConfig({ size: Number((e.target as HTMLInputElement).value) }),
+  );
+  $("skin").addEventListener("change", (e) =>
+    void patchConfig({ skin: (e.target as HTMLSelectElement).value as Config["skin"] }),
+  );
+  $("inspection").addEventListener("change", (e) =>
+    void patchConfig({ inspection: (e.target as HTMLInputElement).checked }),
   );
   $("logging").addEventListener("change", (e) =>
     void patchConfig({ logging: (e.target as HTMLInputElement).checked }),

@@ -1,7 +1,7 @@
 {
   "name": "tracker-eye",
-  "version": "0.1.0",
-  "description": "Tracker Eye — a Firefox research prototype that makes invisible online tracking visible through an anthropomorphic eye overlay.",
+  "version": "0.2.0",
+  "description": "Tracker Eye — a Firefox research prototype that makes invisible online tracking visible through an anthropomorphic eye that watches you, and reads along when you fill in a form.",
   "private": true,
   "license": "MPL-2.0",
   "type": "module",
@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run build",
     "package": "node scripts/build.mjs && node scripts/package.mjs",
-    "import:trackers": "node scripts/import-trackers.mjs"
+    "import:trackers": "node scripts/import-trackers.mjs",
+    "study": "node scripts/serve.mjs"
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "^120.0.4",

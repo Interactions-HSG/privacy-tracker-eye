@@ -75,6 +75,10 @@ section { padding: 12px 14px; }
 .orgs ul { list-style: none; margin: 0 0 8px; padding: 0; max-height: 120px; overflow: auto; }
 .orgs li { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--line); }
 .orgs li .cat { color: var(--muted); font-size: 11px; }
+.orgs summary em { color: var(--accent); font-style: normal; float: right; font-size: 11px; }
+.orgs li .chars { color: var(--muted); font-size: 11px; }
+.orgs li .kind { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+.orgs li .field { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .muted { color: var(--muted); }
 
 hr { border: none; border-top: 1px solid var(--line); margin: 0; }

@@ -1,0 +1,219 @@
+/* Nimbus Market — study fixture stylesheet.
+   A deliberately ordinary, friendly consumer-shop look: the site must feel
+   unremarkable so that the only thing a participant notices is the eye. */
+
+:root {
+  --ink: #1b2029;
+  --muted: #667085;
+  --line: #e4e7ec;
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --brand: #2f6f6b;
+  --brand-dark: #245754;
+  --accent: #f0a04b;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+
+a { color: var(--brand); }
+
+header.site {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+header.site .brand {
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+  color: var(--brand);
+  text-decoration: none;
+}
+header.site .brand span { color: var(--accent); }
+header.site nav {
+  margin-left: auto;
+  display: flex;
+  gap: 18px;
+  font-size: 14px;
+  color: var(--muted);
+}
+header.site nav a { color: var(--muted); text-decoration: none; }
+
+main { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+
+.steps {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.steps li {
+  flex: 1;
+  padding-top: 8px;
+  border-top: 3px solid var(--line);
+}
+.steps li.done { border-top-color: var(--brand); }
+.steps li.now { border-top-color: var(--accent); color: var(--ink); font-weight: 600; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 26px 26px 30px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.4px; }
+h2 { font-size: 18px; margin: 26px 0 10px; }
+.lede { color: var(--muted); margin: 0 0 22px; }
+
+.field { margin-bottom: 18px; }
+.field > label,
+fieldset > legend {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.hint { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+  color: inherit;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid rgba(47, 111, 107, 0.35);
+  border-color: var(--brand);
+}
+textarea { min-height: 110px; resize: vertical; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+
+fieldset { border: none; padding: 0; margin: 0 0 18px; }
+.checks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; }
+@media (max-width: 560px) { .checks { grid-template-columns: 1fr; } }
+.checks label,
+.consent label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 400;
+}
+.checks input, .consent input { margin-top: 3px; }
+
+.connect { display: grid; gap: 12px; }
+.connect .partner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 13px 15px;
+}
+.connect .partner .logo {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 9px;
+  background: var(--bg);
+  font-size: 17px;
+}
+.connect .partner .what { flex: 1; }
+.connect .partner .what b { display: block; font-size: 15px; }
+.connect .partner .what small { color: var(--muted); }
+
+button.primary {
+  margin-top: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.primary:hover { background: var(--brand-dark); }
+
+a.btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+a.btn:hover { background: var(--brand-dark); }
+.actions { display: flex; align-items: center; gap: 16px; }
+.actions a { font-size: 14px; color: var(--muted); }
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 26px;
+  align-items: center;
+}
+@media (max-width: 640px) { .hero { grid-template-columns: 1fr; } }
+.hero .art {
+  height: 190px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #cfe3e1, #f3dcc2 70%);
+  display: grid;
+  place-items: center;
+  font-size: 58px;
+}
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 26px; }
+@media (max-width: 640px) { .tiles { grid-template-columns: 1fr; } }
+.tile {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+.tile .pic { font-size: 26px; }
+.tile b { display: block; margin-top: 6px; font-size: 15px; }
+.tile small { color: var(--muted); }
+
+footer.site {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  padding: 18px 24px 40px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+footer.site a { color: var(--muted); }
+
+.notes { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+.notes code { background: #eef1f4; padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+.notes li { margin-bottom: 8px; }
