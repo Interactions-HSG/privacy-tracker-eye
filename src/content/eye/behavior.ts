@@ -67,7 +67,7 @@ export function behaviorFor(intensity: number): BehaviorParams {
     blinkIntervalMs: lerp(3200, 12000, I),
     blinkDurationMs: lerp(430, 150, I),
     lidOpenness: lerp(0.5, 1.0, smoothstep(I)),
-    pupilDilation: lerp(0.42, 0.82, I),
+    pupilDilation: lerp(0.35, 0.6, I),
     saccadeIntervalMs: lerp(850, 4200, I),
     wanderAmplitude: lerp(1.35, 0.25, I),
     screenDrift: lerp(0.42, 0.0, smoothstep(I)),
@@ -95,7 +95,7 @@ export function inspectionBehaviorFor(sensitivity: number, intensity: number): B
     blinkIntervalMs: lerp(9000, 20000, s), // it does not want to miss a keystroke
     blinkDurationMs: 130,
     lidOpenness: 1,
-    pupilDilation: lerp(0.68, 0.92, s),
+    pupilDilation: lerp(0.55, 0.65, s),
     saccadeIntervalMs: 5000,
     wanderAmplitude: 0.12,
     screenDrift: 0, // never off-screen while inspecting

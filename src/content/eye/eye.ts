@@ -385,15 +385,21 @@ export class Eye {
 
     const cx = W / 2;
     const cy = H / 2;
+    // Proportions are tied to the eye's width, not the canvas height, so the
+    // eye keeps the same shape at any canvas size: a 2:1 opening with an iris
+    // about 40% of the eye's width, as in a real eye.
     const eyeHalfW = W * 0.45;
-    const maxOpenH = H * 0.42; // slightly taller opening => a bit rounder
+    const maxOpenH = eyeHalfW * 0.5; // half-height of the fully open eye
     const openH = maxOpenH * clamp01(this.openness);
 
-    // Eye-opening almond path (reused as a clip and as the sclera fill).
+    // Eye-opening almond path (reused as a clip and as the sclera fill). A cubic
+    // at t=0.5 reaches 3/4 of its control offset, so 4/3·openH makes openH the
+    // true half-height of the opening.
+    const k = openH * (4 / 3);
     const path = new Path2D();
     path.moveTo(cx - eyeHalfW, cy);
-    path.quadraticCurveTo(cx, cy - openH, cx + eyeHalfW, cy);
-    path.quadraticCurveTo(cx, cy + openH, cx - eyeHalfW, cy);
+    path.bezierCurveTo(cx - eyeHalfW * 0.5, cy - k, cx + eyeHalfW * 0.5, cy - k, cx + eyeHalfW, cy);
+    path.bezierCurveTo(cx + eyeHalfW * 0.5, cy + k, cx - eyeHalfW * 0.5, cy + k, cx - eyeHalfW, cy);
     path.closePath();
 
     // Soft drop shadow / socket.
@@ -413,12 +419,16 @@ export class Eye {
     ctx.save();
     ctx.clip(path);
 
-    // Iris geometry follows the gaze, clamped to stay within the sclera.
-    const irisR = H * 0.32;
-    const maxGX = eyeHalfW - irisR * 0.75;
-    const maxGY = maxOpenH - irisR * 0.55;
-    const ix = cx + clampRange(this.gaze.x, -1, 1) * maxGX;
-    const iy = cy + clampRange(this.gaze.y, -1, 1) * Math.max(0, maxGY);
+    // Iris geometry follows the gaze. The gaze is clamped to a unit disc (not a
+    // square) so diagonal looks don't push the iris into the pointed corners,
+    // and the travel keeps the pupil inside the opening at every position.
+    const irisR = eyeHalfW * 0.4;
+    const maxGX = eyeHalfW * 0.3; // iris edge stops at ~70% of the way to the corner
+    const maxGY = maxOpenH - irisR * 0.85;
+    const glen = Math.hypot(this.gaze.x, this.gaze.y);
+    const gs = glen > 1 ? 1 / glen : 1;
+    const ix = cx + this.gaze.x * gs * maxGX;
+    const iy = cy + this.gaze.y * gs * maxGY;
 
     this.drawIris(ctx, ix, iy, irisR, b);
 
