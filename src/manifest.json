@@ -46,6 +46,7 @@
 
   "browser_action": {
     "default_title": "Tracker Eye",
+    "default_area": "navbar",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "48": "icons/eye.svg",
