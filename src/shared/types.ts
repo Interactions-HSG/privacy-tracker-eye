@@ -123,6 +123,8 @@ export interface IntensityResult {
   band: "idle" | "low" | "medium" | "high";
   /** Organisation with the heaviest presence on this page, if any. */
   dominantOrganization: string | null;
+  /** The heaviest few organisations, heaviest first — who the data miners work for. */
+  topOrganizations: string[];
   /** Per-signal sub-scores in [0, 1], for transparency / the popup / logs. */
   components: {
     organizations: number;
@@ -165,6 +167,12 @@ export interface Config {
    */
   inspection: boolean;
   /**
+   * Data miners: while the participant types into a field on a tracked page,
+   * small workers in the trackers' shirts run in, mine the field and carry the
+   * chips out of the window. Independent of {@link Config.inspection}.
+   */
+  miners: boolean;
+  /**
    * Research override. When non-null, the eye ignores measured intensity and
    * uses this fixed value in [0, 1] — used to script experimental conditions.
    */
@@ -179,6 +187,7 @@ export const DEFAULT_CONFIG: Config = {
   size: 320,
   skin: "neutral",
   inspection: true,
+  miners: true,
   intensityOverride: null,
   logging: false,
 };

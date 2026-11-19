@@ -42,6 +42,8 @@ export interface InspectionGeometry {
   point: Vec;
   /** performance.now() of the last keystroke, for the re-reading sweep. */
   lastInput: number;
+  /** How many characters the field holds — a count, never the content. */
+  chars: number;
 }
 
 export interface InspectionTarget {
@@ -411,7 +413,9 @@ export class Eye {
     ctx.fill(path);
     ctx.restore();
 
-    if (skin.accent) this.drawAccent(ctx, cx, cy, eyeHalfW, maxOpenH, skin.accent, b);
+    if (skin.accent) {
+      this.drawAccent(ctx, cx, cy, eyeHalfW, maxOpenH, skin.accent, skin.accentArrow === true, b);
+    }
 
     if (openH < 1.5) return; // essentially closed; skip iris.
 
@@ -524,7 +528,7 @@ export class Eye {
     }
   }
 
-  /** Warm curve under the eye — a skin ornament, not a logotype. */
+  /** Warm curve under the eye, optionally ending in an arrowhead on the right. */
   private drawAccent(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -532,6 +536,7 @@ export class Eye {
     eyeHalfW: number,
     maxOpenH: number,
     color: string,
+    arrow: boolean,
     b: BehaviorParams,
   ): void {
     // Kept inside the canvas box: the curve's lowest point sits at roughly
@@ -545,8 +550,24 @@ export class Eye {
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(cx - span, y);
-    ctx.quadraticCurveTo(cx, y + maxOpenH * 0.62, cx + span, y);
+    const ctrlY = y + maxOpenH * 0.62;
+    ctx.quadraticCurveTo(cx, ctrlY, cx + span, y);
     ctx.stroke();
+
+    if (arrow) {
+      // Arrowhead at the right end, aligned with the curve's end tangent (which
+      // runs from the control point to the end point), so it points up-right.
+      const back = Math.atan2(ctrlY - y, -span); // direction back along the curve
+      const head = eyeHalfW * 0.16;
+      const spread = 0.56; // ~32° either side of the shaft
+      const tipX = cx + span;
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(tipX + Math.cos(back + spread) * head, y + Math.sin(back + spread) * head);
+      ctx.lineTo(tipX, y);
+      ctx.lineTo(tipX + Math.cos(back - spread) * head, y + Math.sin(back - spread) * head);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 

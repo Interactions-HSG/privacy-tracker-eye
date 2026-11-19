@@ -178,6 +178,7 @@ export class FieldWatcher {
       rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
       point: readPointFor(a.el, rect),
       lastInput: a.lastInput,
+      chars: charCount(a.el),
     };
   }
 }

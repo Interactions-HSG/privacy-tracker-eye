@@ -147,7 +147,19 @@ async function primeOpenTabs(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Messaging
 // ---------------------------------------------------------------------------
-browser.runtime.onMessage.addListener((message: Message, sender) => {
+// Replies go through sendResponse + `return true` rather than a returned
+// Promise: Firefox accepts both, Chrome only honours this form.
+browser.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
+  const reply = handleMessage(message, sender);
+  if (!reply) return false;
+  reply.then(sendResponse, () => sendResponse(undefined));
+  return true; // keep the channel open for the async reply
+});
+
+function handleMessage(
+  message: Message,
+  sender: browser.runtime.MessageSender,
+): Promise<Message> | false {
   switch (message.type) {
     case "hello": {
       const tabId = sender.tab?.id;
@@ -211,7 +223,20 @@ browser.runtime.onMessage.addListener((message: Message, sender) => {
     default:
       return false;
   }
-});
+}
+
+// ---------------------------------------------------------------------------
+// Chrome (MV3) service-worker keep-alive
+// ---------------------------------------------------------------------------
+// In Chrome the background is a service worker that is shut down after ~30 s
+// without events, which would wipe the per-tab signals and the study log held
+// in memory here. An extension API call resets that idle timer, so a periodic
+// no-op call keeps the worker (and a running study's log) alive. Firefox runs a
+// persistent background page and skips this.
+if ("ServiceWorkerGlobalScope" in globalThis) {
+  setInterval(() => void browser.runtime.getPlatformInfo(), 20_000);
+  browser.runtime.onStartup.addListener(() => {}); // start with the browser
+}
 
 // ---------------------------------------------------------------------------
 // Boot

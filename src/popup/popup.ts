@@ -92,6 +92,7 @@ function renderConfig(config: Config): void {
   $("size-val").textContent = String(config.size);
   ($("skin") as HTMLSelectElement).value = config.skin;
   ($("inspection") as HTMLInputElement).checked = config.inspection;
+  ($("miners") as HTMLInputElement).checked = config.miners;
   ($("logging") as HTMLInputElement).checked = config.logging;
 
   const overrideOn = $("overrideOn") as HTMLInputElement;
@@ -136,6 +137,9 @@ function wire(): void {
   );
   $("inspection").addEventListener("change", (e) =>
     void patchConfig({ inspection: (e.target as HTMLInputElement).checked }),
+  );
+  $("miners").addEventListener("change", (e) =>
+    void patchConfig({ miners: (e.target as HTMLInputElement).checked }),
   );
   $("logging").addEventListener("change", (e) =>
     void patchConfig({ logging: (e.target as HTMLInputElement).checked }),

@@ -36,17 +36,20 @@ export function fingerprintingScore(fp: FingerprintEvidence): number {
  * colours the eye wears in "auto" skin mode, i.e. *who* is doing the watching.
  */
 export function dominantOrganization(signals: TabSignals): string | null {
-  let best: string | null = null;
-  let bestScore = 0;
-  for (const [org, requests] of Object.entries(signals.organizationRequests)) {
-    const category = signals.organizations[org] ?? "unknown";
-    const score = requests * SCORING.categoryWeight[category];
-    if (score > bestScore) {
-      best = org;
-      bestScore = score;
-    }
-  }
-  return best;
+  return topOrganizations(signals, 1)[0] ?? null;
+}
+
+/** The `limit` organisations with the heaviest presence, heaviest first. */
+export function topOrganizations(signals: TabSignals, limit: number): string[] {
+  return Object.entries(signals.organizationRequests)
+    .map(([org, requests]): [string, number] => [
+      org,
+      requests * SCORING.categoryWeight[signals.organizations[org] ?? "unknown"],
+    ])
+    .filter(([, score]) => score > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([org]) => org);
 }
 
 /** Sum of per-organisation category weights => "effective organisation count". */
@@ -97,6 +100,7 @@ export function computeIntensity(signals: TabSignals): IntensityResult {
     intensity,
     band: bandFor(intensity),
     dominantOrganization: dominantOrganization(signals),
+    topOrganizations: topOrganizations(signals, 5),
     components,
     counts: {
       organizations: Object.keys(signals.organizations).length,
