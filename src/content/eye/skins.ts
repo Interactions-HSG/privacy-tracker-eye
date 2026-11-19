@@ -7,8 +7,8 @@
 // is a far more concrete cue than a generic amber iris.
 //
 // Skins are pure palettes + two optional ornaments (a rim ring, an under-eye
-// accent arc). They never render text or a logotype — the eye communicates
-// through behaviour and colour only.
+// accent arc that can end in an arrowhead). They never render text — the eye
+// communicates through behaviour, colour and these ornaments only.
 
 import type { EyeSkin } from "../../shared/types";
 
@@ -33,6 +33,8 @@ export interface SkinPalette {
   ring?: readonly string[];
   /** Optional accent arc drawn under the eye. */
   accent?: string;
+  /** End the accent arc in an arrowhead on its right. */
+  accentArrow?: boolean;
 }
 
 const NEUTRAL: SkinPalette = {
@@ -59,7 +61,7 @@ const GOOGLE: SkinPalette = {
   ring: ["#4285F4", "#EA4335", "#FBBC05", "#34A853"],
 };
 
-/** Amazon's ink-blue and orange; the accent arc is the warm under-eye curve. */
+/** Amazon's ink-blue and orange; the accent arc is the under-eye curve with its arrow. */
 const AMAZON: SkinPalette = {
   id: "amazon",
   label: "Amazon",
@@ -70,6 +72,7 @@ const AMAZON: SkinPalette = {
   pupil: "#232F3E",
   glow: "255,153,0",
   accent: "#FF9900",
+  accentArrow: true,
 };
 
 export const SKINS: Record<Exclude<EyeSkin, "auto">, SkinPalette> = {

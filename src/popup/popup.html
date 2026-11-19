@@ -22,23 +22,27 @@
       </div>
       <div class="page" id="page-domain">—</div>
     </section>
+    <small class="hint pad">How intensely this page is tracking you, from 0 to 100%.</small>
 
     <section class="signals">
-      <div class="signal"><b id="c-orgs">0</b><span>tracker orgs</span></div>
-      <div class="signal"><b id="c-domains">0</b><span>tracker domains</span></div>
-      <div class="signal"><b id="c-requests">0</b><span>tracker requests</span></div>
-      <div class="signal"><b id="c-cookies">0</b><span>3rd-party cookies</span></div>
-      <div class="signal"><b id="c-fp">0%</b><span>fingerprinting</span></div>
-      <div class="signal"><b id="c-third">0</b><span>3rd-party reqs</span></div>
+      <div class="signal" title="Companies behind the trackers found on this page."><b id="c-orgs">0</b><span>tracker orgs</span></div>
+      <div class="signal" title="Distinct tracker domains this page has contacted."><b id="c-domains">0</b><span>tracker domains</span></div>
+      <div class="signal" title="Network requests this page sent to known trackers."><b id="c-requests">0</b><span>tracker requests</span></div>
+      <div class="signal" title="Other sites that set or read cookies on this page."><b id="c-cookies">0</b><span>3rd-party cookies</span></div>
+      <div class="signal" title="How strongly the page probes your browser to fingerprint it."><b id="c-fp">0%</b><span>fingerprinting</span></div>
+      <div class="signal" title="All requests this page sent to other sites, trackers or not."><b id="c-third">0</b><span>3rd-party reqs</span></div>
     </section>
+    <small class="hint pad">The signals behind the score; hover a tile for what it counts.</small>
 
     <details class="orgs">
       <summary>Detected organisations</summary>
+      <small class="hint">The companies whose trackers were seen on this page.</small>
       <ul id="org-list"><li class="muted">none yet</li></ul>
     </details>
 
     <details class="orgs" id="disclosed" open>
       <summary>What you typed here <em id="watcher">—</em></summary>
+      <small class="hint">Fields you filled in and who could read them; your text is never stored.</small>
       <ul id="disclosure-list"><li class="muted">nothing yet</li></ul>
     </details>
 
@@ -49,6 +53,7 @@
         <span>Show the eye</span>
         <input type="checkbox" id="eyeEnabled" />
       </label>
+      <small class="hint">Shows or hides the eye on every page.</small>
 
       <label class="row">
         <span>Corner</span>
@@ -59,11 +64,13 @@
           <option value="bottom-left">bottom-left</option>
         </select>
       </label>
+      <small class="hint">The screen corner where the eye rests.</small>
 
       <label class="row">
         <span>Size <em id="size-val">320</em>px</span>
         <input type="range" id="size" min="160" max="640" step="20" />
       </label>
+      <small class="hint">How wide the eye is drawn.</small>
 
       <label class="row">
         <span>Skin</span>
@@ -74,27 +81,38 @@
           <option value="auto">auto (whoever tracks)</option>
         </select>
       </label>
+      <small class="hint">Whose colours the eye wears; auto picks the page's biggest tracker.</small>
 
       <label class="row">
         <span>Fly to fields I fill in</span>
         <input type="checkbox" id="inspection" />
       </label>
+      <small class="hint">The eye flies to a form field and reads along while you type.</small>
 
       <label class="row">
-        <span>Override intensity</span>
+        <span>Data miners</span>
+        <input type="checkbox" id="miners" />
+      </label>
+      <small class="hint">Little workers in the trackers' colours carry what you type out of the window.</small>
+
+      <label class="row">
+        <span>Mock tracker intensity</span>
         <input type="checkbox" id="overrideOn" />
       </label>
       <label class="row sub">
         <input type="range" id="override" min="0" max="100" step="1" disabled />
         <em id="override-val">0%</em>
       </label>
+      <small class="hint">Pins the eye to a fixed intensity instead of the measured one.</small>
 
       <label class="row">
         <span>Log samples (1/s)</span>
         <input type="checkbox" id="logging" />
       </label>
+      <small class="hint">Records one tracking sample per second for the study.</small>
 
       <button id="export" type="button">Export log (JSON)</button>
+      <small class="hint">Downloads the recorded samples as a JSON file.</small>
     </section>
 
     <footer id="foot">research prototype</footer>

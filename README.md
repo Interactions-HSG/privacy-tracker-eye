@@ -1,6 +1,6 @@
 # Tracker Eye 👁
 
-A Firefox research prototype that makes invisible online tracking **visible** by
+A Firefox and Chrome research prototype that makes invisible online tracking **visible** by
 rendering an anthropomorphic eye that watches you back — calmly when little
 tracking is happening, intensely when you are being heavily tracked.
 
@@ -53,6 +53,7 @@ read, stored or transmitted** — only measured.
    * [5c — Skins](#5c--skins-whose-eye-is-this)
 6. [Build instructions](#build-instructions)
 7. [Deliverable 6 — Loading into Firefox](#6--loading-into-firefox-aboutdebugging)
+   * [6b — Loading into Chrome](#6b--loading-into-chrome-or-edge)
 8. [Deliverable 7 — Licensing implications](#7--licensing-implications)
 9. [The study fixture site](#8--the-study-fixture-site)
 10. [Using it in a user study](#using-it-in-a-user-study)
@@ -175,7 +176,7 @@ and streams that score to a content-script overlay that animates the eye.
 
 ```
 src/
-  manifest.json                 Firefox MV2 manifest
+  manifest.json                 Firefox MV2 manifest (the Chrome MV3 one is derived from it at build time)
   shared/                       pure, browser-free, shared by all contexts
     types.ts                    data model (TabSignals, IntensityResult, Config…)
     messages.ts                 typed cross-context message protocol
@@ -198,10 +199,13 @@ src/
       eye.ts                    ▶ Deliverable 5b: Canvas eye + state machine
       overlay.ts                Shadow-DOM host, HiDPI canvas
       skins.ts                  ▶ palettes: neutral / Google / Amazon / auto
+    miners/
+      miners.ts                 ▶ data miners: run in, mine the field, carry it off
+      shirts.ts                 ▶ shirt colours + badge letter per tracker organisation
   popup/                        research/debug panel (HTML/CSS/TS)
 scripts/
-  build.mjs                     esbuild bundler  →  dist/
-  package.mjs                   zip dist/  →  web-ext-artifacts/*.zip
+  build.mjs                     esbuild bundler  →  dist/ (Firefox) + dist-chrome/ (Chrome)
+  package.mjs                   zip both builds  →  web-ext-artifacts/*.zip
   import-trackers.mjs           regenerate the full Disconnect list
   serve.mjs                     static server for the study fixture
 docs/test-page.html             local fixture that triggers trackers + fingerprinting
@@ -364,20 +368,22 @@ strongest form, and it needs no per-site configuration.
 
 ## Build instructions
 
-Prerequisites: **Node ≥ 18** and a recent **Firefox** (≥ 140; today's release or ESR 140+).
+Prerequisites: **Node ≥ 18** and a recent **Firefox** (≥ 140; today's release or ESR 140+)
+and/or **Chrome** / Edge (≥ 111).
 
 ```bash
 npm install          # installs esbuild, typescript, tldts, types
-npm run build        # bundles TypeScript → dist/   (this is what you load)
+npm run build        # bundles TypeScript → dist/ (Firefox) and dist-chrome/ (Chrome)
 npm run typecheck    # optional: strict tsc --noEmit
 npm run check        # typecheck + build
 npm run watch        # rebuild on change during development
-npm run package      # build + zip → web-ext-artifacts/tracker-eye-<v>.zip
+npm run package      # build + zip → web-ext-artifacts/tracker-eye-<v>.zip and …-chrome.zip
 npm run study        # serve the study fixture → http://localhost:8137
 npm run import:trackers   # optional: regenerate the FULL Disconnect list
 ```
 
-The loadable, unpacked extension is the **`dist/`** directory.
+The loadable, unpacked extension is the **`dist/`** directory for Firefox and
+**`dist-chrome/`** for Chrome and Edge. Both are built from the same source.
 
 ---
 
@@ -402,6 +408,30 @@ canvas/WebGL/audio/enumeration fingerprinting, driving the eye to a hard stare.
 
 Reload after a rebuild via the **“Reload”** button on the add-on in
 `about:debugging` (or `npx web-ext run` for auto-reload).
+
+### 6b · Loading into Chrome (or Edge)
+
+1. Run `npm install && npm run build`.
+2. Open **`chrome://extensions`** (Edge: `edge://extensions`) and switch on
+   **Developer mode**.
+3. Click **“Load unpacked”** and select the **`dist-chrome/`** folder.
+4. Pin the 👁 icon from the puzzle-piece menu. **Reload tabs that were already
+   open** — Chrome only injects the eye into pages loaded after the install.
+
+After a rebuild, press the reload arrow on the extension's card.
+
+How the Chrome build differs from the Firefox one (same source, same behaviour):
+
+* **Manifest V3.** `scripts/build.mjs` derives the MV3 manifest from
+  `src/manifest.json`, and the bundle reads `browser.*` as `chrome.*`.
+* **Service-worker background.** Chrome shuts an idle worker down after ~30 s,
+  which would wipe the in-memory signals and study log, so the worker keeps
+  itself alive with a periodic no-op API call. As in Firefox, the log is still
+  lost when the browser quits — export it before closing.
+* **Fingerprint probe** is declared as a `MAIN`-world content script rather than
+  injected through a `<script>` tag.
+* **Icons** are PNGs (`icons/eye-*.png`, rendered from `eye.svg`); Chrome does
+  not accept SVG extension icons.
 
 ---
 
@@ -481,9 +511,16 @@ The popup is built for experimental control:
 * **Fly to fields I fill in** — close inspection on/off. Off gives you the 0.1
   behaviour (corner eye, intensity only), which is the natural comparison
   condition for H1: *does showing the consequence beat showing the intensity?*
+* **Data miners** — on/off. While the participant types into a field on a
+  tracked page, small workers run in from the window edge, mine the field with a
+  pickaxe, drop the chips into the wooden basket on their back and run out of
+  the window again. Each wears the shirt (brand colours + initial) of a tracker
+  organisation actually present on the page, heaviest first. Independent of the
+  eye's flight, so the two can be separate conditions. The chips are generic
+  blocks: the miners only ever see a character count, never the text.
 * **Skin** — neutral / Google / Amazon / auto: whether the eye is anonymous or
   visibly belongs to the company doing the tracking.
-* **Override intensity** — pin the eye to a fixed value (0–100 %) to script
+* **Mock tracker intensity** — pin the eye to a fixed value (0–100 %) to script
   manipulation conditions independent of the actual site. Note that inspection
   is armed off this value too, so an override of 0 also disables the flight.
 * **Corner / size** — placement and salience.

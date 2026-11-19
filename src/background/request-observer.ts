@@ -20,6 +20,20 @@ export interface ObserverHooks {
 
 const URL_FILTER: browser.webRequest.RequestFilter = { urls: ["<all_urls>"] };
 
+/**
+ * Chrome only exposes Set-Cookie to onHeadersReceived when "extraHeaders" is
+ * requested; Firefox always exposes it and rejects the unknown option. Chrome
+ * advertises the option on webRequest.OnHeadersReceivedOptions, so detect it.
+ */
+function headersReceivedOptions(): browser.webRequest.OnHeadersReceivedOptions[] {
+  const options = ["responseHeaders"];
+  const advertised = (
+    browser.webRequest as unknown as { OnHeadersReceivedOptions?: Record<string, string> }
+  ).OnHeadersReceivedOptions;
+  if (advertised?.EXTRA_HEADERS) options.push(advertised.EXTRA_HEADERS);
+  return options as browser.webRequest.OnHeadersReceivedOptions[];
+}
+
 export function installRequestObserver(store: TabStateStore, hooks: ObserverHooks): void {
   browser.webRequest.onBeforeRequest.addListener(
     (details) => {
@@ -68,6 +82,6 @@ export function installRequestObserver(store: TabStateStore, hooks: ObserverHook
       hooks.onSignals(details.tabId);
     },
     URL_FILTER,
-    ["responseHeaders"],
+    headersReceivedOptions(),
   );
 }
